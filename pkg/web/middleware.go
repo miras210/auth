@@ -1,13 +1,13 @@
 package web
 
-type Middleware func(handler Handler) Handler
+type Middleware func(Handler) Handler
 
-func wrapMiddleware(m []Middleware, handler Handler) Handler {
-	for i := len(m) - 1; i >= 0; i-- {
-		h := m[i]
-		if h != nil {
-			handler = h(handler)
+func wrapMiddleware(handler Handler, middlewares []Middleware) Handler {
+	for i := len(middlewares) - 1; i >= 0; i-- {
+		if handler != nil {
+			handler = middlewares[i](handler)
 		}
 	}
+
 	return handler
 }

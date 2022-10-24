@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"github.com/google/uuid"
 	"time"
 )
 
@@ -10,29 +9,16 @@ const (
 	RefreshTokenExpiration = time.Hour * 24 * 7
 )
 
-// Payload
-// is the claims part of jwt token
-// stored in context
-type Payload struct {
-	UserID int    `json:"user_id"`
-	Role   string `json:"role"`
-	Exp    int64  `json:"exp"`
+// Token - structure for holding all token related data
+type Token struct {
+	ID         string `json:"-"`
+	UserID     string `json:"user_id"`
+	TokenValue string `json:"token_value"`
+	ExpiresAt  int64  `json:"expires_at"`
 }
 
-// RefreshToken
-// is model stored in the database
-type RefreshToken struct {
-	ID             uuid.UUID `json:"id"`
-	UserID         int       `json:"user_id"`
-	RefreshToken   string    `json:"refresh_token"`
-	ExpirationTime time.Time `json:"expiration_time"`
-}
-
-// TokenPair
-// is the structure that is returned to the user as JSON
+// TokenPair - structure for holding access and refresh token
 type TokenPair struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	AccessExp    int64  `json:"access_token_exp"`
-	RefreshExp   int64  `json:"refresh_token_exp"`
+	AccessToken  *Token `json:"access_token"`
+	RefreshToken *Token `json:"refresh_token"`
 }

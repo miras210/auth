@@ -1,0 +1,36 @@
+version: '3'
+services:
+  postgres:
+    container_name: postgres-auth
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
+    volumes:
+      - postgres-vol:/var/lib/postgresql/data
+      - ./migration/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - 5432:5432
+    networks:
+      - users-auth
+
+  myapp:
+    container_name: auth-service
+    ports:
+      - 8080:8080
+    build:
+      context: ./
+      dockerfile: build/Dockerfile
+    restart: always
+    networks:
+      - users-auth
+    volumes:
+      - ./.env:/app/.env
+    environment:
+      - APP_MODE=DEV
+networks:
+  users-auth:
+    driver: bridge
+volumes:
+  postgres-vol:

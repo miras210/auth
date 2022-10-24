@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"github.com/gorilla/mux"
+	"log"
 	"net/http"
 	"os"
 	"syscall"
@@ -11,37 +12,42 @@ import (
 type Handler func(ctx context.Context, w http.ResponseWriter, r *http.Request) error
 
 type App struct {
-	mux         *mux.Router
+	router      *mux.Router
 	shutdown    chan os.Signal
 	middlewares []Middleware
 }
 
-func NewApp(shutdown chan os.Signal, middlewares ...Middleware) *App {
-	app := App{
-		mux:         mux.NewRouter(),
+func NewApp(router *mux.Router, shutdown chan os.Signal, middlewares ...Middleware) *App {
+	return &App{
 		shutdown:    shutdown,
+		router:      router,
 		middlewares: middlewares,
 	}
-
-	return &app
 }
 
-func (a *App) signalShutdown() {
+func (a *App) Shutdown() {
 	a.shutdown <- syscall.SIGTERM
 }
 
-func (a *App) Handle(method string, path string, handler Handler, middlewares ...Middleware) {
-	handler = wrapMiddleware(middlewares, handler)
-	handler = wrapMiddleware(a.middlewares, handler)
+func (a *App) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	a.router.ServeHTTP(w, r)
+}
+
+func (a *App) Handle(method string, group string, path string, handler Handler, middlewares ...Middleware) {
+	handler = wrapMiddleware(handler, middlewares)
+	handler = wrapMiddleware(handler, a.middlewares)
 
 	h := func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-
-		if err := handler(ctx, w, r); err != nil {
-			a.signalShutdown()
+		if err := handler(r.Context(), w, r); err != nil {
+			log.Println(err.Error())
+			a.Shutdown()
 			return
 		}
 	}
 
-	a.mux.HandleFunc(path, h).Methods(method)
+	if group != "" {
+		path = "/" + group + path
+	}
+
+	a.router.HandleFunc(path, h).Methods(method)
 }
